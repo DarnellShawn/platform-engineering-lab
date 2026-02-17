@@ -1,0 +1,42 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: minio
+  namespace: argocd
+  finalizers:
+  - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    chart: minio
+    repoURL: https://charts.min.io/
+    targetRevision: 5.0.14
+    helm:
+      values: |
+        mode: standalone
+        replicas: 1
+        persistence:
+          enabled: true
+          size: 5Gi
+        resources:
+          requests:
+            memory: 512Mi
+            cpu: 250m
+        rootUser: "admin"
+        rootPassword: "password123"  # In Produktion via Secrets, für Lab ok
+        buckets:
+          - name: input-data
+            policy: public
+            purge: false
+          - name: mlflow-artifacts
+            policy: public
+            purge: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: data-storage
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
